@@ -1,0 +1,23 @@
+# Dapr Component Configuration for Azure OpenAI (using OpenAI component type)
+# This component enables the conversation API for Azure OpenAI via OpenAI-compatible endpoint
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: azure-openai-compatible
+spec:
+  type: conversation.openai
+  version: v1
+  metadata:
+  - name: key
+    value: "{env:OPENAI_API_KEY}"  # Using Azure OpenAI key in OPENAI_API_KEY format
+  - name: model
+    value: "{env:AZURE_OPENAI_DEPLOYMENT}"  # Azure deployment name
+  - name: endpoint
+    value: "{env:AZURE_OPENAI_ENDPOINT}"  # Azure OpenAI endpoint
+  - name: apiType
+    value: "azure"
+  - name: apiVersion
+    value: "2025-01-01-preview"
+scopes:
+- dapr-agents

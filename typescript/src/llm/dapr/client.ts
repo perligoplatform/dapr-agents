@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DaprClient, CommunicationProtocolEnum, HttpMethod } from '@dapr/dapr';
 import { LLMClientBase } from '../../base/llm.js';
 import { DaprInferenceClientConfig } from '../../types/llm.js';
 
@@ -58,7 +59,7 @@ export abstract class DaprInferenceClientBase extends LLMClientBase {
 
   // Protected members for subclasses
   protected _llmComponent: string | undefined;
-  protected _daprClient?: any; // DaprClient type to be defined
+  protected _daprClient?: DaprClient;
 
   constructor(config: DaprInferenceClientBaseConfig = {}) {
     super();
@@ -103,7 +104,7 @@ export abstract class DaprInferenceClientBase extends LLMClientBase {
     } as DaprInferenceClientConfig;
   }
 
-  public get client(): any {
+  public get client(): DaprClient {
     if (!this._daprClient) {
       throw new Error('Dapr client not initialized');
     }
@@ -114,16 +115,23 @@ export abstract class DaprInferenceClientBase extends LLMClientBase {
     return this.config;
   }
 
-  public getClient(): any {
+  public getClient(): DaprClient {
     return this.client;
   }
 
   /**
    * Create Dapr client instance
    */
-  protected createDaprClient(): any {
-    const { DaprClient } = require('@dapr/dapr');
-    return new DaprClient();
+  protected createDaprClient(): DaprClient {
+    // Static import provides better TypeScript support and build-time validation
+    // This matches the default Dapr sidecar configuration
+    const client = new DaprClient({
+      daprHost: 'localhost',
+      daprPort: '3500',
+      communicationProtocol: CommunicationProtocolEnum.HTTP, // Properly typed enum
+    });
+    
+    return client;
   }
 
   /**
@@ -216,7 +224,7 @@ export abstract class DaprInferenceClientBase extends LLMClientBase {
       const response = await this._daprClient.invoker.invoke(
         this._llmComponent!, // Component name
         'converse', // Method name for conversation API
-        'POST',
+        HttpMethod.POST,
         {
           inputs: params.inputs,
           contextId: params.contextId,
@@ -230,6 +238,7 @@ export abstract class DaprInferenceClientBase extends LLMClientBase {
 
       return response;
     } catch (error) {
+      // Set breakpoint here to inspect Dapr call errors
       throw new Error(`Dapr conversation API call failed: ${error}`);
     }
   }

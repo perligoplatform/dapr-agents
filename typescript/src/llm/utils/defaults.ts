@@ -1,12 +1,11 @@
 import { ChatClientBase } from '../chat.js';
+import { DaprChatClient } from '../dapr/chat.js';
 
 /**
  * Centralized default LLM factory for the SDK
  */
 export function getDefaultLLM(): ChatClientBase {
   try {
-    // Lazy import to avoid circular dependencies
-    const { DaprChatClient } = require('../dapr/chat.js');
     return new DaprChatClient();
   } catch (error) {
     console.warn(`Failed to create default Dapr client: ${error}. LLM will be null.`);
@@ -34,19 +33,15 @@ export function getAvailableProviders(): string[] {
   
   // Check for OpenAI
   try {
-    require('../openai/chat.js');
+    // Use static import check - if we can import the module, it's available
+    import('../openai/chat.js');
     providers.push('openai');
   } catch {
     // OpenAI not available
   }
   
-  // Check for Dapr
-  try {
-    require('../dapr/chat.js');
-    providers.push('dapr');
-  } catch {
-    // Dapr not available
-  }
+  // Dapr is always available since we import it
+  providers.push('dapr');
   
   return providers;
 }

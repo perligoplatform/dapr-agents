@@ -1,0 +1,32 @@
+# Dapr CosmosDB State Store Component for Agent State Management (Managed Identity)
+# This component stores agent configurations, memory, and persistent state using Azure CosmosDB
+# Uses Azure Managed Identity for secure authentication without keys
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore-agents-cosmos
+spec:
+  type: state.azure.cosmosdb
+  version: v1
+  metadata:
+  - name: url
+    value: "{env:COSMOS_AGENTS_URL}"
+  - name: azureEnvironment
+    value: "AzurePublicCloud"
+  - name: database
+    value: "dapr-agents"
+  - name: collection
+    value: "agent-registry"
+  - name: actorStateStore
+    value: "false"
+  - name: partitionKey
+    value: "agentType"
+  - name: consistency
+    value: "session"
+  - name: defaultTtlInSeconds
+    value: "0"
+auth:
+  secretStore: azure-keyvault
+scopes:
+- dapr-agents

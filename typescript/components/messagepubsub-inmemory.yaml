@@ -1,0 +1,13 @@
+# Dapr Component Configuration for In-Memory Pub/Sub
+# This component enables message passing for development/testing without external dependencies
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: messagepubsub-inmemory
+spec:
+  type: pubsub.in-memory
+  version: v1
+  metadata: []
+scopes:
+- dapr-agents

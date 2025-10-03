@@ -1,0 +1,30 @@
+# Dapr CosmosDB State Store Component for Workflows and Actors (Managed Identity)
+# This component enables workflow and actor state persistence using Azure CosmosDB
+# Uses Azure Managed Identity for secure authentication without keys
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore-workflows-cosmos
+spec:
+  type: state.azure.cosmosdb
+  version: v1
+  metadata:
+  - name: url
+    value: "{env:COSMOS_WORKFLOWS_URL}"
+  - name: azureEnvironment
+    value: "AzurePublicCloud"
+  - name: database
+    value: "dapr-workflows"
+  - name: collection
+    value: "workflow-state"
+  - name: actorStateStore
+    value: "true"
+  - name: partitionKey
+    value: "workflowId"
+  - name: consistency
+    value: "strong"
+auth:
+  secretStore: azure-keyvault
+scopes:
+- dapr-agents

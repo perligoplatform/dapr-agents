@@ -99,7 +99,7 @@ interface TemplateAttributes {
 /**
  * Base class for agents that interact with language models and manage tools for task execution.
  */
-export class Agent extends EventEmitter {
+export abstract class Agent extends EventEmitter {
   public readonly name: string;
   public readonly role: string;
   public readonly goal: string;

@@ -1,0 +1,19 @@
+# Dapr Component Configuration for Redis Pub/Sub
+# This component enables message passing between services
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: messagepubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: "localhost:6379"
+  - name: redisPassword
+    value: ""
+  - name: redisDB
+    value: "0"
+scopes:
+- dapr-agents

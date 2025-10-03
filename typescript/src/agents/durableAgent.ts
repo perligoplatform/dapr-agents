@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { EventEmitter } from 'events';
 import { DaprClient } from '@dapr/dapr';
 import { ConcreteAgent, AgentConfig } from './concreteAgent.js';
+import { WorkflowApp, AgenticWorkflow, WorkflowTask } from '../workflow/index.js';
 import { 
   DurableAgentWorkflowState, 
   DurableAgentWorkflowEntry,
@@ -75,6 +76,7 @@ export class DurableAgent extends ConcreteAgent {
   // Workflow state management
   protected workflowState: DurableAgentWorkflowState;
   protected readonly workflowName = 'AgenticWorkflow';
+  protected agenticWorkflow?: AgenticWorkflow;
   
   constructor(config: Partial<DurableAgentConfig> = {}) {
     super(config);
@@ -105,6 +107,150 @@ export class DurableAgent extends ConcreteAgent {
     this.workflowState = createInitialWorkflowState();
     
     this._postInitDurable();
+    this._initializeWorkflow();
+  }
+
+  /**
+   * Initialize the AgenticWorkflow for this durable agent
+   */
+  private async _initializeWorkflow(): Promise<void> {
+    try {
+      this.agenticWorkflow = new AgenticWorkflow({
+        name: this.name || 'DurableAgent',
+        messageBusName: this.pubSubName,
+        broadcastTopicName: this.broadcastTopicName,
+        stateStoreName: this.stateStoreName,
+        stateKey: `agent_workflow_${this.name}`,
+        state: {},
+        agentsRegistryStoreName: this.stateStoreName,
+        agentsRegistryKey: 'agents_registry',
+        maxIterations: this.maxIterations,
+        saveStateLocally: true,
+        timeout: 300,
+        llm: this.llm,
+        // memory: this.memory, // TODO: Fix memory interface compatibility
+      });
+
+      // Register agent-specific tasks
+      this._registerAgentTasks();
+      
+      console.log(`🔄 AgenticWorkflow initialized for agent: ${this.name}`);
+    } catch (error) {
+      console.error(`❌ Failed to initialize AgenticWorkflow:`, error);
+    }
+  }
+
+  /**
+   * Register agent-specific tasks with the workflow
+   */
+  private _registerAgentTasks(): void {
+    if (!this.agenticWorkflow) return;
+
+    // Register the main agent execution task
+    const agentTask = new WorkflowTask({
+      func: this._executeAgentTask.bind(this),
+      description: `Execute agent task for ${this.name}`,
+      agent: this,
+      llm: this.llm,
+      includeChatHistory: true,
+    });
+
+    this.agenticWorkflow.registerTask(`${this.name}_execute`, agentTask.execute.bind(agentTask));
+
+    // Register tool execution tasks
+    for (const tool of this.tools) {
+      const toolTask = new WorkflowTask({
+        func: this._executeToolTask.bind(this, tool),
+        description: `Execute tool: ${tool.name || 'unknown'}`,
+      });
+
+      this.agenticWorkflow.registerTask(`${this.name}_tool_${tool.name}`, toolTask.execute.bind(toolTask));
+    }
+  }
+
+  /**
+   * Execute agent task in workflow context
+   */
+  private async _executeAgentTask(context: any, input: any): Promise<any> {
+    console.log(`🤖 Executing agent task for ${this.name} in workflow context`);
+    
+    try {
+      // Use the parent ConcreteAgent's run method for the actual execution
+      const result = await super.run(input);
+      
+      // Update workflow state
+      await this._updateWorkflowState(context, input, result);
+      
+      return result;
+    } catch (error) {
+      console.error(`❌ Agent task execution failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute tool task in workflow context
+   */
+  private async _executeToolTask(tool: any, context: any, input: any): Promise<any> {
+    console.log(`🔧 Executing tool ${tool.name} for ${this.name} in workflow context`);
+    
+    try {
+      // Execute the tool
+      const result = await tool.execute(input);
+      
+      // Update tool history
+      this.toolHistory.push({
+        id: `${tool.name}_${Date.now()}`,
+        timestamp: new Date(),
+        toolCallId: `call_${Date.now()}`,
+        toolName: tool.name,
+        toolArgs: input || {},
+        executionResult: JSON.stringify(result),
+      });
+      
+      await this._updateWorkflowState(context, input, result);
+      
+      return result;
+    } catch (error) {
+      // Update tool history with error
+      this.toolHistory.push({
+        id: `${tool.name}_${Date.now()}`,
+        timestamp: new Date(),
+        toolCallId: `call_${Date.now()}`,
+        toolName: tool.name,
+        toolArgs: input || {},
+        executionResult: error instanceof Error ? error.message : String(error),
+      });
+      
+      console.error(`❌ Tool execution failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update workflow state after task execution
+   */
+  private async _updateWorkflowState(context: any, input: any, result: any): Promise<void> {
+    try {
+      // Update workflow state
+      const instanceId = context.getWorkflowInstanceId ? context.getWorkflowInstanceId() : this.workflowInstanceId;
+      
+      const workflowEntry = createWorkflowEntry(
+        JSON.stringify({ input, result, agent_name: this.name }),
+        instanceId,
+        this.name
+      );
+
+      if (instanceId) {
+        this.workflowState.instances[instanceId] = workflowEntry;
+        this.workflowInstanceId = instanceId;
+      }
+
+      // Save updated state
+      await this.saveState();
+    } catch (error) {
+      console.error(`❌ Failed to update workflow state:`, error);
+    }
   }
 
   /**

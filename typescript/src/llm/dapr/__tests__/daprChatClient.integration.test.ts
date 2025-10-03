@@ -1,6 +1,10 @@
 import { describe, test, expect, beforeAll } from 'vitest';
 import { DaprChatClient } from '../daprChatClient.js';
 import { BaseMessage, AssistantMessage, ToolMessage, ToolCall } from '../../../types/message.js';
+import { loadEnvironment } from '../../../utils/environment.js';
+
+// Load environment variables from .env file
+loadEnvironment();
 
 describe('DaprChatClient Integration Tests', () => {
   let client: DaprChatClient;
@@ -45,7 +49,7 @@ describe('DaprChatClient Integration Tests', () => {
   // Note: Actual Dapr integration tests require a running Dapr sidecar
   // These would be run separately with proper Dapr infrastructure
   describe('Dapr Integration (requires running Dapr sidecar)', () => {
-    test.skip('should generate chat completion via Dapr', async () => {
+    test('should generate chat completion via Dapr', async () => {
       const messages: BaseMessage[] = [
         {
           role: 'user',
@@ -53,22 +57,34 @@ describe('DaprChatClient Integration Tests', () => {
         }
       ];
 
+      // Set breakpoint here to inspect variables
+      const config = client.getConfig();
+      
       try {
+        // Set breakpoint here to step into the call
         const response = await client.generate(messages);
         
+        // Set breakpoint here to inspect response
         expect(response).toBeDefined();
         expect(response.results).toBeDefined();
         expect(response.results.length).toBeGreaterThan(0);
-        expect(response.results[0].message.role).toBe('assistant');
-        expect(response.results[0].message.content).toBeDefined();
+        expect(response.results[0]?.message.role).toBe('assistant');
+        expect(response.results[0]?.message.content).toBeDefined();
         expect(response.metadata).toBeDefined();
         expect(response.metadata.componentName).toBe('gpt-35-turbo');
+        
       } catch (error) {
-        // Expected if Dapr is not running
-        console.log('Dapr integration test skipped - requires running Dapr sidecar');
-        expect(error).toBeDefined();
+        // Set breakpoint here to inspect error details
+        const errorDetails = {
+          name: (error as Error).name,
+          message: (error as Error).message,
+          stack: (error as Error).stack
+        };
+        
+        // Re-throw to fail the test and see the error
+        throw error;
       }
-    });
+    }, 30000); // 30 second timeout for Dapr calls
 
     test.skip('should validate Dapr component configuration', async () => {
       try {

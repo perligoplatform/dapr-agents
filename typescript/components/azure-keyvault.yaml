@@ -1,0 +1,24 @@
+# Azure Key Vault Secret Store Component for Managed Identity Authentication
+# This component enables secure access to secrets using Azure Managed Identity
+# Used by CosmosDB state stores for keyless authentication
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: azure-keyvault
+spec:
+  type: secretstores.azure.keyvault
+  version: v1
+  metadata:
+  - name: vaultName
+    value: "{env:AZURE_KEYVAULT_NAME}"
+  - name: azureEnvironment
+    value: "AzurePublicCloud"
+  - name: azureTenantId
+    value: "{env:AZURE_TENANT_ID}"
+  - name: azureClientId
+    value: "{env:AZURE_CLIENT_ID}"
+auth:
+  secretStore: azure-keyvault
+scopes:
+- dapr-agents

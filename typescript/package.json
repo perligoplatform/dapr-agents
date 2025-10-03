@@ -4,7 +4,13 @@
   "description": "TypeScript implementation of Dapr Agents - A Framework for Agentic AI Systems",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "keywords": ["dapr", "agents", "workflows", "ai", "typescript"],
+  "keywords": [
+    "dapr",
+    "agents",
+    "workflows",
+    "ai",
+    "typescript"
+  ],
   "author": "Dapr Authors <dapr@dapr.io>",
   "license": "Apache-2.0",
   "engines": {
@@ -24,9 +30,10 @@
   },
   "dependencies": {
     "@dapr/dapr": "^3.5.0",
+    "dotenv": "^17.2.3",
     "openai": "^4.52.0",
-    "zod": "^3.23.8",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

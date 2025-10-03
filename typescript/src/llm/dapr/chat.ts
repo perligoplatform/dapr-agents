@@ -27,9 +27,28 @@ export const DaprChatClientConfigSchema = z.object({
   temperature: z.number().optional(),
   /** Additional parameters */
   parameters: z.record(z.any()).optional(),
+}).transform((data) => {
+  // Validate and set LLM component with fallback logic (matches Python behavior)
+  let componentName = data.componentName;
+  if (!componentName) {
+    componentName = process.env.DAPR_LLM_COMPONENT_DEFAULT;
+  }
+  if (!componentName) {
+    throw new Error(
+      'You must provide a componentName or set DAPR_LLM_COMPONENT_DEFAULT in the environment.'
+    );
+  }
+  
+  return {
+    ...data,
+    componentName, // This will now always be defined
+  };
 });
 
 export type DaprChatClientConfig = z.infer<typeof DaprChatClientConfigSchema>;
+
+// Input type for the constructor (before Zod transformation)
+export type DaprChatClientInputConfig = z.input<typeof DaprChatClientConfigSchema>;
 
 /**
  * Dapr chat client implementation
@@ -39,11 +58,12 @@ export class DaprChatClient extends ChatClientBase {
   private readonly requestHandler: RequestHandler;
   private readonly responseHandler: ResponseHandler;
 
-  constructor(config: DaprChatClientConfig = {}) {
+
+  constructor(config: DaprChatClientInputConfig = {}) {
     super();
     
     const validated = DaprChatClientConfigSchema.parse(config);
-    
+
     // Initialize Dapr client with configuration
     this.daprClient = new DaprInferenceClientBaseImpl({
       componentName: validated.componentName,
@@ -80,6 +100,7 @@ export class DaprChatClient extends ChatClientBase {
   public getClient(): any {
     return this.client;
   }
+
 
   /**
    * Public generate method implementation

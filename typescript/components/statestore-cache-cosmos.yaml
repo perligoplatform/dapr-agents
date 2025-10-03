@@ -1,0 +1,32 @@
+# Dapr CosmosDB State Store Component for Session and Cache Data (Managed Identity)
+# This component handles temporary data, session state, and caching using Azure CosmosDB
+# Uses Azure Managed Identity for secure authentication without keys
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore-cache-cosmos
+spec:
+  type: state.azure.cosmosdb
+  version: v1
+  metadata:
+  - name: url
+    value: "{env:COSMOS_CACHE_URL}"
+  - name: azureEnvironment
+    value: "AzurePublicCloud"
+  - name: database
+    value: "dapr-cache"
+  - name: collection
+    value: "session-cache"
+  - name: actorStateStore
+    value: "false"
+  - name: partitionKey
+    value: "sessionType"
+  - name: consistency
+    value: "eventual"
+  - name: defaultTtlInSeconds
+    value: "3600"
+auth:
+  secretStore: azure-keyvault
+scopes:
+- dapr-agents
